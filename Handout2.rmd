@@ -1,0 +1,146 @@
+---
+title: "Handout 2"
+output: pdf_document
+---
+
+* Name 1: Miquel Antoni Llambías Cabot
+* Name 2:
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.align="center", echo=TRUE, warning=FALSE, message=FALSE,autodep = TRUE, cache=FALSE)
+library(knitr)
+library(printr)
+library(igraph)
+```
+
+We shall consider again the undirected Facebook friendship network considered in the last handout. The links in this network are contained in the file **facebook_sample_anon.txt**. Download it on your computer and upload it to R as a dataframe. Define an undirected graph with this list of edges.
+
+```{r load data}
+links <- read.table("data/facebook_sample_anon.txt", header=FALSE, as.is=T)
+facenet <- graph_from_data_frame(d=links, directed=FALSE)
+```
+
+**1)**  It has been observed in many networks an association between "centrality" and "lethality," defined as the fatal disconnection of the network when nodes are removed. Let's study this association on this network.
+
+Let's find out if *facenet* is a connected graph
+```{r check connectivity}
+is.connected(facenet)
+```
+Let's find out how many nodes we have to remove to make this network a disconnected one
+```{r}
+vertex_connectivity(facenet, source = NULL, target = NULL, checks = TRUE)
+```
+This network seems weak, by removing one specific node we can make it a disconnected network.
+
+*a)* Repeat 1000 times the procedure of removing a random 0.1% of its set of nodes, and compute the average number of connected components of the resulting networks and the average fraction of the network represented by the largest component. Use **set.seed** to make your results reproducible.
+
+We are going to set a seed to the random number generator to be able to reproduce our results.
+```{r set seed}
+set.seed(728754898)
+```
+
+```{r remove random N vertex function}
+removeRandomNVertex <- function (graph, numberOfVertexToRemove) {
+  result <- graph
+  vertexCount <- length(V(graph))
+  if(vertexCount > 0 && numberOfVertexToRemove > 0 && numberOfVertexToRemove <= vertexCount) {
+    randomIndex <- round(runif(numberOfVertexToRemove, 1, vertexCount), digits = 0)
+    result <- delete_vertices(graph, randomIndex)
+  } else {
+    print("Your graph is empty")
+  }
+  result
+}
+```
+
+First of all, let's get reference value of the unmodified *facenet*
+```{r reference components}
+components <- components(facenet)
+```
+```{r print_reference_components, echo = FALSE}
+print(paste("facenet has", components$no, "component", sep = " "))
+print(paste("this component is of size", components$csize, sep = " "))
+```
+
+Now we are going to repeat 1000 times a removal of 0.1% of vertex and check how many components we have. Then print the average.
+```{r average connected components}
+numberOfRounds <- 1000
+numberConnectedComponentsList <- NULL
+Op1PercentVertex <- ceiling(length(V(facenet)) * 0.001)
+print(paste0("the 0.1% of vertex is ", Op1PercentVertex,
+             ". Then, we are going to remove ", Op1PercentVertex, " random nodes each loop"))
+for(i in 1:numberOfRounds) {
+  numberConnectedComponentsList <- append(numberConnectedComponentsList,
+                                          components(removeRandomNVertex(facenet, Op1PercentVertex))$no)
+}
+averageConnectedComponents <- sum(numberConnectedComponentsList) / numberOfRounds
+print(paste0("the average number of connected components after a removal of 0.1% of vertex is '",
+             averageConnectedComponents,
+             "' components"))
+```
+After this test we can say that this network isn't that weak. Certainly has a weak point, but isn't something that by deleting some random vertex we can ensure is going to fall apart.
+
+*b)* Now, compute the number of connected components and the fraction represented by the largest component of the networks obtained after removing the most central 0.1% of nodes, for the following centrality indices (of course, if the most central 0.1% of nodes for two indices are the same set of nodes, you need not waste your time considering twice the same network): *degree*; *closeness*; *betweenness*; *page.rank*. (**Hint**: It might be convenient to define first a function that removes a given set of nodes of this graph and computes the number of connected components and the fraction represented by the largest component of the resulting network; then you will only need to apply it to the required different sets of most central nodes.) Is it what you expected?
+
+Let's remove the 0.1% of the vertex with higher **degrees** and check how many components we have.
+```{r remove 0.1% with highest degrees}
+vertexWithHighestDegrees <- names(sort(degree(facenet), decreasing = TRUE)[1:Op1PercentVertex])
+vertexWithHighestDegrees
+components(delete_vertices(facenet, vertexWithHighestDegrees))$no
+```
+We can see that by removing the 0.1% of nodes with the highest degrees, "107", "1684", "1912", "3437" and "0", we can split the network in 59 components.
+
+Let's remove the 0.1% of the vertex with higher **closeness** and check how many components we have.
+```{r remove 0.1% with highest closeness}
+vertexWithHighestCentralCloseness <- names(sort(closeness(facenet), decreasing = TRUE)[1:Op1PercentVertex])
+vertexWithHighestCentralCloseness
+components(delete_vertices(facenet, vertexWithHighestCentralCloseness))$no
+```
+This time by removing vertex "107", "58", "428", "563" and "1684" with higher closeness have result in fewer components, 21.
+
+Let's remove the 0.1% of the vertex with higher **betweenness** and check how many components we have.
+```{r remove 0.1% with highest betweenness}
+vertexWithHighestBetweenness <- names(sort(betweenness(facenet), decreasing = TRUE)[1:Op1PercentVertex])
+vertexWithHighestBetweenness
+components(delete_vertices(facenet, vertexWithHighestBetweenness))$no
+```
+By removing the ones with the highest betweenness resulted in 41 components. Better than closeness but worse than degrees.
+
+Let's remove the 0.1% of the vertex with higher **page_rank score** and check how many components we have.
+```{r remove 0.1% with highest page_rank}
+names(sort(page_rank(facenet, algo = "power", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex])
+names(sort(page_rank(facenet, algo = "arpack", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex])
+vertexWithHighestPageRank <- names(sort(page_rank(facenet, algo = "prpack", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex])
+vertexWithHighestPageRank
+
+sort(vertexWithHighestDegrees) == sort(vertexWithHighestPageRank) # is same list as degrees? --> IF all TRUE then yes
+```
+With page_rank we obtained same vector as in our highest degree test. Then this should score 59 components. The algorithm was tested with all tree methods "prpack", "arpack" and "power", all of them output same vertex list
+
+To conclude, booth highest degrees and page_rank got it's best score splitting the network. Followed by betweeness and closeness.
+I was expecting degrees to be the best one but page_rank did also well with a undirected graph.
+
+**2)** Now, consider the same graph as a directed one, and find the hubs and authorities scores. Compare with the page rank score.
+
+```{r load data as directed}
+facenetDirected <- graph_from_data_frame(d=links, directed=TRUE)
+```
+
+Calculate the authorities of the new loaded facenet as a directed graph
+```{r}
+authorityScore <- sort(authority_score(facenetDirected)$vector, decreasing = TRUE)
+head(authorityScore)
+tail(authorityScore)
+```
+Calculate the hubs of the new loaded facenet as a directed graph
+```{r}
+hubScores <- sort(hub_score(facenetDirected)$vector, decreasing = TRUE)
+head(hubScores)
+tail(hubScores)
+```
+Calculate the page_rank scores using new loaded facenet as a directed graph
+```{r}
+pageRankDirScores <- sort(page_rank(facenetDirected, algo = "prpack", directed = TRUE)$vector, decreasing = TRUE)
+head(pageRankDirScores)
+tail(pageRankDirScores)
+```
