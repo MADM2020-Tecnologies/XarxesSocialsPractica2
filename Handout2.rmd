@@ -1,13 +1,13 @@
 ---
 title: "Handout 2"
-output: pdf_document
+output: html_document
 ---
 
 * Name 1: Miquel Antoni Llambías Cabot
 * Name 2:
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.align="center", echo=TRUE, warning=FALSE, message=FALSE,autodep = TRUE, cache=FALSE)
+knitr::opts_chunk$set(fig.align="center", echo=TRUE, warning=FALSE, message=FALSE,autodep = TRUE, cache=TRUE)
 library(knitr)
 library(printr)
 library(igraph)
@@ -20,11 +20,14 @@ links <- read.table("data/facebook_sample_anon.txt", header=FALSE, as.is=T)
 facenet <- graph_from_data_frame(d=links, directed=FALSE)
 ```
 
-**1)**  It has been observed in many networks an association between "centrality" and "lethality," defined as the fatal disconnection of the network when nodes are removed. Let's study this association on this network.
+**1)**  It has been observed in many networks an association between "centrality" and "lethality", defined as the fatal disconnection of the network when nodes are removed. Let's study this association on this network.
 
 Let's find out if *facenet* is a connected graph
 ```{r check connectivity}
 is.connected(facenet)
+centralization <- centr_degree(facenet, mode="in", normalized=T)
+centralization$centralization
+centralization$theoretical_max
 ```
 Let's find out how many nodes we have to remove to make this network a disconnected one
 ```{r}
@@ -66,14 +69,14 @@ Now we are going to repeat 1000 times a removal of 0.1% of vertex and check how 
 ```{r average connected components}
 numberOfRounds <- 1000
 numberConnectedComponentsList <- NULL
-Op1PercentVertex <- ceiling(length(V(facenet)) * 0.001)
+Op1PercentVertex <- round(length(V(facenet)) * 0.001, digits = 0)
 print(paste0("the 0.1% of vertex is ", Op1PercentVertex,
              ". Then, we are going to remove ", Op1PercentVertex, " random nodes each loop"))
 for(i in 1:numberOfRounds) {
   numberConnectedComponentsList <- append(numberConnectedComponentsList,
                                           components(removeRandomNVertex(facenet, Op1PercentVertex))$no)
 }
-averageConnectedComponents <- sum(numberConnectedComponentsList) / numberOfRounds
+averageConnectedComponents <- mean(numberConnectedComponentsList)
 print(paste0("the average number of connected components after a removal of 0.1% of vertex is '",
              averageConnectedComponents,
              "' components"))
@@ -108,7 +111,7 @@ By removing the ones with the highest betweenness resulted in 41 components. Bet
 
 Let's remove the 0.1% of the vertex with higher **page_rank score** and check how many components we have.
 ```{r remove 0.1% with highest page_rank}
-names(sort(page_rank(facenet, algo = "power", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex])
+#names(sort(page_rank(facenet, algo = "power", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex]) makes klint to crash ...
 names(sort(page_rank(facenet, algo = "arpack", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex])
 vertexWithHighestPageRank <- names(sort(page_rank(facenet, algo = "prpack", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex])
 vertexWithHighestPageRank
@@ -128,19 +131,16 @@ facenetDirected <- graph_from_data_frame(d=links, directed=TRUE)
 
 Calculate the authorities of the new loaded facenet as a directed graph
 ```{r}
-authorityScore <- sort(authority_score(facenetDirected)$vector, decreasing = TRUE)
-head(authorityScore)
-tail(authorityScore)
+authorityScore <- authority_score(facenetDirected)$vector
+plot(authorityScore)
 ```
 Calculate the hubs of the new loaded facenet as a directed graph
 ```{r}
-hubScores <- sort(hub_score(facenetDirected)$vector, decreasing = TRUE)
-head(hubScores)
-tail(hubScores)
+hubScores <- hub_score(facenetDirected)$vector
+plot(hubScores)
 ```
 Calculate the page_rank scores using new loaded facenet as a directed graph
 ```{r}
-pageRankDirScores <- sort(page_rank(facenetDirected, algo = "prpack", directed = TRUE)$vector, decreasing = TRUE)
-head(pageRankDirScores)
-tail(pageRankDirScores)
+pageRankDirScores <- page_rank(facenetDirected, algo = "prpack", directed = TRUE)$vector
+plot(pageRankDirScores)
 ```
