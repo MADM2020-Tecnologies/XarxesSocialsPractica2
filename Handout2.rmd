@@ -160,16 +160,32 @@ facenetDirected <- graph_from_data_frame(d=links, directed=TRUE)
 
 Calculate the authorities of the new loaded facenet as a directed graph
 ```{r}
-authorityScore <- authority_score(facenetDirected)$vector
-plot(authorityScore)
+authority.score <- authority_score(facenetDirected, weights=NA)$vector
+authority.score.top0.1percent <- names(sort(authority.score, decreasing = TRUE)[1:Op1PercentVertex])
+authority.score.top0.1percent
+pageRank.componets <- components(delete_vertices(facenetDirected, authority.score.top0.1percent))$no
+pageRank.componets
 ```
 Calculate the hubs of the new loaded facenet as a directed graph
 ```{r}
-hubScores <- hub_score(facenetDirected)$vector
-plot(hubScores)
+hub.score <- hub_score(facenetDirected, weights=NA)$vector
+hub.score.top0.1percent <- names(sort(hub.score, decreasing = TRUE)[1:Op1PercentVertex])
+hub.score.top0.1percent
+pageRank.componets <- components(delete_vertices(facenetDirected, hub.score.top0.1percent))$no
+pageRank.componets
 ```
+
 Calculate the page_rank scores using new loaded facenet as a directed graph
 ```{r}
-pageRankDirScores <- page_rank(facenetDirected, algo = "prpack", directed = TRUE)$vector
-plot(pageRankDirScores)
+pageRank.score <- page_rank(facenetDirected, algo = "prpack", directed = TRUE)$vector
+pageRank.score.top0.1percent <- names(sort(pageRank.score, decreasing = TRUE)[1:Op1PercentVertex])
+pageRank.score.top0.1percent
+pageRank.componets <- components(delete_vertices(facenetDirected, pageRank.score.top0.1percent))$no
+pageRank.componets
+```
+
+We are going to select wich algorithm is best based on which can 'break' the graph into more components, meaning more components better.
+
+```{r}
+
 ```
