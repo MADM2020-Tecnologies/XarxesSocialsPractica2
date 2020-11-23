@@ -18,9 +18,7 @@ library(sna)
 
 We shall consider again the undirected Facebook friendship network considered in the last handout. The links in this network are contained in the file **facebook_sample_anon.txt**. Download it on your computer and upload it to R as a dataframe. Define an undirected graph with this list of edges.
 
-
-
-# Undirected Graph.
+Load data as undirected Graph.
 
 ```{r read table }
 data <- read.table("data/facebook_sample_anon.txt")
@@ -37,59 +35,24 @@ facenet
 ```
 
 
-**1)**  It has been observed in many networks an association between "centrality" and "lethality," defined as the fatal disconnection of the network when nodes are removed. Let's study this association on this network.
+### **1)**  It has been observed in many networks an association between "centrality" and "lethality," defined as the fatal disconnection of the network when nodes are removed. Let's study this association on this network.
 
 #### Introducción "Conectividad"
 
-```{r adjacency matrix }
-
-#He creado una matriz de adjacencia para poder sacar el "connectedness score"
-
-adj <- as_adjacency_matrix(facenet, type = c("both", "upper", "lower"),
+Build adjacency matrix to calculate the connectedness score
+```{r adjacency matrix}
+adj <- as_adjacency_matrix(facenet, type = "lower",
                            attr = NULL, edges = FALSE, names = TRUE,
                            sparse = F)
-
-#print(paste(adj))
-
 connectedness(adj)
-
-# Observamos que el grado de connectividad es muy elevado ( =1 ). Por lo que podemos decir que     # tiene una conectividad perfecta.
-
 ```
+As we can see the grade of connectivity is very high (=1). Then, we can say this graph has perfect connectivity.
 
-
-```{r proba amb matriu de adjacencia}
-
-# Hago una prueba para saber si esta bien,  quitando 2000 nodos a nuestro graph.
-
-graph1 <- delete_vertices(facenet, sample(4000, 2000))
-
-adj1 <- as_adjacency_matrix(graph1, type = c("both", "upper", "lower"),
-  attr = NULL, edges = FALSE, names = TRUE,
-  sparse = F)
-
-
-(connectedness(adj1))
-
-# La connectividad cae significativamente. ( =~ 0.5). Observamos que al quitar muchos nodos se
-# reduce muchisimo las maneras de movernos en torno a los diferentes nodos de nuestro grafo.
-# De esto podriamos deducir que podria haber una desconexion fatal al eliminar nodos.
-
-
-```
-
-```{r }
-
+```{r, include = FALSE}
 detach("package:sna", unload = T)
-
-
-
 ```
 
-
-
-
-*a)* Repeat 1000 times the procedure of removing a random 0.1% of its set of nodes, and compute the average number of connected components of the resulting networks and the average fraction of the network represented by the largest component. Use set.seed to make your results reproducible.
+#### *a)* Repeat 1000 times the procedure of removing a random 0.1% of its set of nodes, and compute the average number of connected components of the resulting networks and the average fraction of the network represented by the largest component. Use set.seed to make your results reproducible.
 
 
 We are going to set a seed to the random number generator to be able to reproduce our results.
@@ -97,6 +60,7 @@ We are going to set a seed to the random number generator to be able to reproduc
 set.seed(728754898)
 ```
 
+Build a function that given a graph removes random N vertex and return the resultant graph of the operation.
 ```{r remove random N vertex function}
 removeRandomNVertex <- function (graph, numberOfVertexToRemove) {
   result <- graph
@@ -111,6 +75,7 @@ removeRandomNVertex <- function (graph, numberOfVertexToRemove) {
 }
 ```
 
+
 First of all, let's get reference value of the unmodified *facenet*
 ```{r reference components}
 components <- components(facenet)
@@ -119,6 +84,7 @@ components <- components(facenet)
 print(paste("facenet has", components$no, "component", sep = " "))
 print(paste("this component is of size", components$csize, sep = " "))
 ```
+
 
 Now we are going to repeat 1000 times a removal of 0.1% of vertex and check how many components we have. Then print the average.
 ```{r remove random 0.1% vertex}
@@ -149,41 +115,9 @@ print(paste0("the average fraction of the network represented by the largest com
 After this test we can say that this network isn't that weak. Certainly has a weak point, but isn't something that by deleting some random vertex we can ensure is going to fall apart.
 
 
-*b)* Now, compute the number of connected components and the fraction represented by the largest component of the networks obtained after removing the most central 0.1% of nodes, for the following centrality indices (of course, if the most central 0.1% of nodes for two indices are the same set of nodes, you need not waste your time considering twice the same network): *degree*; *closeness*; *betweenness*; *page.rank*. (**Hint**: It might be convenient to define first a function that removes a given set of nodes of this graph and computes the number of connected components, and the fraction represented by the largest component of the resulting network; then you will only need to apply it to the required different sets of most central nodes.) Is it what you expected?
+#### *b)* Now, compute the number of connected components and the fraction represented by the largest component of the networks obtained after removing the most central 0.1% of nodes, for the following centrality indices (of course, if the most central 0.1% of nodes for two indices are the same set of nodes, you need not waste your time considering twice the same network): *degree*; *closeness*; *betweenness*; *page.rank*. (**Hint**: It might be convenient to define first a function that removes a given set of nodes of this graph and computes the number of connected components, and the fraction represented by the largest component of the resulting network; then you will only need to apply it to the required different sets of most central nodes.) Is it what you expected?
 
-
-```{r}
-vertexWithHighestPageRank_arpack <- page_rank(facenet, algo = "prpack", directed = FALSE)
-
-
-centr.page_rank <- centralize(vertexWithHighestPageRank_arpack$vector,
-                              theoretical.max = vertexWithHighestPageRank_arpack$value,
-                              normalized = TRUE)
-centr.page_rank
-#centr.page_rank$centralization
-#centr.page_rank$theoretical_max
-```
-
-```{r}
-centr.degree <- centr_degree(facenet)
-centr.degree$centralization
-centr.degree$theoretical_max
-```
-
-```{r}
-centr.betw <- centr_betw(facenet)
-centr.betw$centralization
-centr.betw$theoretical_max
-```
-```{r}
-centr.clo <- centr_clo(facenet)
-centr.clo$centralization
-centr.clo$theoretical_max
-```
-
-
-
-
+Build a function that given two lists returns TRUE if equal of FALSE otherwise.
 ```{r CompareList}
 CompareList <- function (list1, list2) {
   res <- FALSE
@@ -195,9 +129,11 @@ CompareList <- function (list1, list2) {
 ```
 
 
+Declare common usage constant
 ```{r set constant}
 nVertex <- vcount(facenet) - Op1PercentVertex
 ```
+
 
 Let's remove the 0.1% of the vertex with higher **degrees** and check how many components we have.
 ```{r degrees}
@@ -213,21 +149,20 @@ components.degrees.max <- (max(components.degrees$csize) / nVertex)
 components.degrees.no
 components.degrees.max
 ```
-We can see that by removing the 0.1% of nodes with the highest degrees, "107", "1684", "1912" and "3437", we can split the network in 41 components.
+We can see that by removing the 0.1% of nodes with the highest degrees, "107", "1684", "1912" and "3437", we can split the network in 41 components. The fraction represented by the largest component is 0.9878563.
 
 Let's remove the 0.1% of the vertex with higher **closeness** and check how many components we have.
 ```{r closeness}
 vertexWithHighestCentralCloseness <- names(sort(closeness(facenet), decreasing = TRUE)[1:Op1PercentVertex])
 vertexWithHighestCentralCloseness
 ```
+
 Now compare the 0.1% highest closeness with the list in degrees.
 ```{r closeness2}
 CompareList(vertexWithHighestDegrees, vertexWithHighestCentralCloseness)
 intersect(vertexWithHighestDegrees, vertexWithHighestCentralCloseness)
 ```
-# EXP.
-
-Some of the elements are
+CompareList return FALSE, meaning the 0.1% with high degrees are different from the 0.1% with high closeness. Then we proceed to calculate its components number and the fraction.
 ```{r closeness3}
 components.closeness <- components(delete_vertices(facenet, vertexWithHighestCentralCloseness))
 components.closeness.no <- components.closeness$no
@@ -236,7 +171,8 @@ components.closeness.max <- max(components.closeness$csize) / nVertex
 components.closeness.no
 components.closeness.max
 ```
-This time by removing vertex "107", "58", "428" and "563" with higher closeness have result in fewer components, 12.
+This time by removing vertex "107", "58", "428" and "563" with higher closeness have result in fewer components, 12. The fraction represented by the largest component is 0.9972739. This method produced a bigger cluster.
+
 
 Let's remove the 0.1% of the vertex with higher **betweenness** and check how many components we have.
 ```{r betweenness}
@@ -254,7 +190,8 @@ CompareList(vertexWithHighestDegrees, vertexWithHighestBetweenness)
   #components.betweenness.no # 41
   #components.betweenness.max # 0.9878563
 ```
-Booth lists are equal, then betweenness result is expected to be equal to degrees, 41 components.
+Booth lists are equal, then betweenness result is expected to be equal to degrees, 41 components and equal fraction represented by the largest component is 0.9878563.
+
 
 Let's remove the 0.1% of the vertex with higher **page_rank score** and check how many components we have.
 ```{r page_rank}
@@ -270,9 +207,9 @@ CompareList(vertexWithHighestPageRank_prpack, vertexWithHighestPageRank_arpack)
 vertexWithHighestPageRank <- intersect(vertexWithHighestPageRank_prpack, vertexWithHighestPageRank_arpack)
 vertexWithHighestPageRank
 ```
-Booth lists are equal.
+There is no diference between using diferent algorithms of page_rank. All of them produced same vertex list.
 
-Now compare the 0.1% highest page_rank scores with the different algorithms, and then with degrees/betweenness and closeness.
+Now compare the 0.1% high page_rank scores with the different algorithms, and then with degrees/betweenness and closeness.
 ```{r page_rank2}
 # compare with closeness and betweenness
 CompareList(vertexWithHighestDegrees, vertexWithHighestPageRank)
@@ -282,8 +219,9 @@ intersect(vertexWithHighestDegrees, vertexWithHighestPageRank)
 CompareList(vertexWithHighestCentralCloseness, vertexWithHighestPageRank)
 intersect(vertexWithHighestCentralCloseness, vertexWithHighestPageRank)
 ```
-There is no difference between algorithms within page_rank in this case. We can do only 1 components run with any of page_rank lists.
-Page_rank also selected different vertex than the other 3 methods. Let's calculate its components.
+As we can see, page_rank 0.1% high score vertex list is different from degrees/betweenness and closeness. Then we need to calculate components for the new generated list.
+
+Since there is no difference between algorithms within page_rank, we can use any of the vertex list to produce same components after vertex deletion.
 ```{r page_rank3}
 components.page_rank <- components(delete_vertices(facenet, vertexWithHighestPageRank))
 components.page_rank.no <- components.page_rank$no
@@ -292,13 +230,14 @@ components.page_rank.max <- max(components.page_rank$csize) / nVertex
 components.page_rank.no
 components.page_rank.max
 ```
-Page_rank scored the maximum components, 52. This means that page_rank is able to select the most valuable nodes in the newtwork.
+Page_rank scored the maximum components, 52. This means that page_rank is able to select the most valuable nodes in the newtwork. The fraction represented by the largest component is 0.983891.
 
 To conclude, best was page_rank with 52 components, followed by degrees and betweenness with 41, and last closeness with 12.
 I was expecting degrees to be the best one but page_rank proved to be better.
 
-## **2)** Now, consider the same graph as a directed one, and find the hubs and authorities scores. Compare with the page rank score.
+### **2)** Now, consider the same graph as a directed one, and find the hubs and authorities scores. Compare with the page rank score.
 
+Load the facenet graph as a directed graph
 ```{r generate directed graph}
 facenet_directed <- graph_from_data_frame(data, directed = TRUE)
 ```
@@ -306,11 +245,14 @@ facenet_directed <- graph_from_data_frame(data, directed = TRUE)
 
 #### HUBS and AUTHORITIES
 
+
+Calculate Hub and Authority scores for the directed graph
 ```{r HUBS and AUTHORITIES}
 hub_score <- hub_score(facenet_directed, scale=T)$vector
 authority_score <- authority_score(facenet_directed, scale =T )$vector
 ```
 
+Plot it
 ```{r}
 par(mfrow=c(1,2))
 plot(facenet_directed,
@@ -328,17 +270,16 @@ plot(facenet_directed,
      edge.arrow.size=0.1,
      layout = layout.kamada.kawai,
      vertex.label = NA)
-
-
-#Observamos en los gráficos como las zonas donde hay Hubs y Authority coinciden.
-
 ```
+There is too many nodes to see a clear view of the network. But, we can observe that Hubs and Authorities are placed at same side of the net.
 
+
+Calculate the list of 0.1% high hub_score.
 ```{r HUBS 2}
 vertex.hub <- names(sort(hub_score, decreasing = TRUE)[1:Op1PercentVertex])
 vertex.hub
 ```
-
+Calculate the components and the fraction.
 ```{r HUBS 3}
 components.hub_score <- components(delete_vertices(facenet_directed, vertex.hub))
 components.hub_score.no <- components.hub_score$no
@@ -347,12 +288,15 @@ components.hub_score.max <- max(components.hub_score$csize) / nVertex
 components.hub_score.no
 components.hub_score.max
 ```
+Here we can see that by removing the hubs the network loses its connectivity and got split into 8 different clusters.
 
+
+Calculate the list of 0.1% high authority_score.
 ```{r AUTHORITIES 2}
 vertex.auth <- names(sort(authority_score, decreasing = TRUE)[1:Op1PercentVertex])
 vertex.auth
 ```
-
+Calculate the components and the fraction.
 ```{r AUTHORITIES 3}
 components.authority_score <- components(delete_vertices(facenet_directed, vertex.auth))
 components.authority_score.no <- components.authority_score$no
@@ -361,13 +305,17 @@ components.authority_score.max <- max(components.authority_score$csize) / nVerte
 components.authority_score.no
 components.authority_score.max
 ```
+The 0.1% high score Authorities does not effect the network enough to fragment the network.
+
 
 #### Page_rank directed score
 
+Calculate the page_rank score but using a directed graph. This time we used arpack algorithm, but behind the scenes we checked that again algorithm does not change the output in a meaningful way to change the 0.1% with high score.
 ```{r Pagerank score}
 page_rank <- page_rank(facenet_directed, algo = "arpack", directed = TRUE)$vector # booth algo give same result
 ```
 
+Plot it
 ```{r Pagerank score2}
 par(mfrow=c(1,2))
 plot(facenet_directed,
@@ -379,12 +327,14 @@ plot(facenet_directed,
      vertex.label = NA)
 
 ```
+Colors did not work with this one. It's impossible to see where high score nodes are.
 
+Build a list of the 0.1% page_rank high score
 ```{r page_rank_directed1}
 vertex.page_rank <- names(sort(page_rank, decreasing = TRUE)[1:Op1PercentVertex])
 vertex.page_rank
 ```
-
+Calculate the components after removing 0.1% high page_rank score vertex.
 ```{r page_rank_directed2}
 components.page_rank <- components(delete_vertices(facenet_directed, vertex.page_rank))
 components.page_rank.no <- components.page_rank$no
@@ -397,6 +347,7 @@ components.page_rank.max
 
 - Doubt 1: can we join Hubs and Authorities scores into one list?
 
+We check if vertex list is equal across the different methods.
 ```{r compare lists}
 CompareList(vertex.auth, vertex.hub)
 intersect(vertex.auth, vertex.hub)
@@ -423,3 +374,4 @@ components.authority_score.max
 components.hub_score.max
 components.page_rank.max
 ```
+Like on number of clusters compilation suggest, we can't tell which are the differences apart from hubs that its capable of segment the network into different clusters.
