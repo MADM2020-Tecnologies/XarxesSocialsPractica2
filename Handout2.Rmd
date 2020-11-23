@@ -7,7 +7,7 @@ output: html_document
 
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.align="center", echo=TRUE, warning=FALSE, message=FALSE,autodep = TRUE,cache=TRUE)
+knitr::opts_chunk$set(fig.align="center", echo=TRUE, warning=FALSE, message=FALSE,autodep = TRUE,cache=FALSE)
 library(knitr)
 library(printr)
 library(igraph)
@@ -21,18 +21,17 @@ We shall consider again the undirected Facebook friendship network considered in
 # Undirected Graph.
 
 ```{r read table }
-data <- read.table("data/facebook_sample_anon.txt")
-tail(data)
+facenet <- read.table("data/facebook_sample_anon.txt")
+tail(facenet)
 ```
 *Load data*
 
 ```{r generate a graph}
-graph <- graph_from_data_frame(data, directed = F)
+facenet <- graph_from_data_frame(facenet, directed = F)
 # plot(graph, edge.color = "darkgoldenrod1", edge.arrow.size = 0.001, edge.arrow.width = 1,
 #     vertex.color = "cyan3", vertex.label= NA,
 #     vertex.size = 12, rescale = T, main = "Undirected Graph from Facebook dataset")
-graph
-
+facenet
 ```
 
 
@@ -44,9 +43,9 @@ graph
 
 #He creado una matriz de adjacencia para poder sacar el "connectedness score"
 
-adj <- as_adjacency_matrix(graph, type = c("both", "upper", "lower"),
-  attr = NULL, edges = FALSE, names = TRUE,
-  sparse = F)
+adj <- as_adjacency_matrix(facenet, type = c("both", "upper", "lower"),
+                           attr = NULL, edges = FALSE, names = TRUE,
+                           sparse = F)
 
 #print(paste(adj))
 
@@ -61,7 +60,7 @@ connectedness(adj)
 
 # Hago una prueba para saber si esta bien,  quitando 2000 nodos a nuestro graph.
 
-graph1 <- delete_vertices(graph, sample(4000,2000))
+graph1 <- delete_vertices(facenet, sample(4000, 2000))
 
 adj1 <- as_adjacency_matrix(graph1, type = c("both", "upper", "lower"),
   attr = NULL, edges = FALSE, names = TRUE,
@@ -99,7 +98,7 @@ set.seed(728754898)
 ```{r remove random N vertex function}
 removeRandomNVertex <- function (graph, numberOfVertexToRemove) {
   result <- graph
-  vertexCount <- vcount(facenet)
+  vertexCount <- vcount(graph)
   if(vertexCount > 0 && numberOfVertexToRemove > 0 && numberOfVertexToRemove <= vertexCount) {
     randomIndex <- round(runif(numberOfVertexToRemove, 1, vertexCount), digits = 0)
     result <- delete_vertices(graph, randomIndex)
@@ -139,6 +138,9 @@ for(i in 1:numberOfRounds) {
 averageConnectedComponents <- mean(numberConnectedComponentsList)
 averageFractionRepresentedByLargestComponent <- mean(fractionRepresentedByLargestComponentList)
 
+print(paste0("the average number of connected components after a removal of 0.1% of vertex is '",
+             averageConnectedComponents,
+             "' components"))
 print(paste0("the average fraction of the network represented by the largest component '",
              averageFractionRepresentedByLargestComponent, "'"))
 ```
@@ -149,7 +151,15 @@ After this test we can say that this network isn't that weak. Certainly has a we
 
 
 ```{r}
+vertexWithHighestPageRank_arpack <- page_rank(facenet, algo = "prpack", directed = FALSE)
 
+
+centr.page_rank <- centralize(vertexWithHighestPageRank_arpack$vector,
+                              theoretical.max = vertexWithHighestPageRank_arpack$value,
+                              normalized = TRUE)
+centr.page_rank
+#centr.page_rank$centralization
+#centr.page_rank$theoretical_max
 ```
 
 ```{r}
@@ -170,15 +180,36 @@ centr.clo$theoretical_max
 ```
 
 
+
+
+```{r closeness2}
+CompareList <- function (list1, list2) {
+  res <- FALSE
+  if(length(list1) == length(list2)) {
+    res <- length(intersect(list1, list2)) == length(list1)
+  }
+  res
+}
+```
+
+
+```{r set constant}
+nVertex <- vcount(facenet) - Op1PercentVertex
+```
+
 Let's remove the 0.1% of the vertex with higher **degrees** and check how many components we have.
 ```{r degrees}
+nVertex <- vcount(facenet) - Op1PercentVertex
+
 vertexWithHighestDegrees <- names(sort(degree(facenet), decreasing = TRUE)[1:Op1PercentVertex])
 vertexWithHighestDegrees
-components.degrees <- components(delete_vertices(facenet, vertexWithHighestDegrees))
 
-nVertex <- vcount(facenet) - Op1PercentVertex
+components.degrees <- components(delete_vertices(facenet, vertexWithHighestDegrees))
 components.degrees.no <- components.degrees$no
-components.degrees.max <- max(components.degrees$csize / nVertex)
+components.degrees.max <- (max(components.degrees$csize) / nVertex)
+
+components.degrees.no
+components.degrees.max
 ```
 We can see that by removing the 0.1% of nodes with the highest degrees, "107", "1684", "1912" and "3437", we can split the network in 41 components.
 
@@ -189,11 +220,19 @@ vertexWithHighestCentralCloseness
 ```
 Now compare the 0.1% highest closeness with the list in degrees.
 ```{r closeness2}
-vertexWithHighestDegrees %in% vertexWithHighestCentralCloseness
+CompareList(vertexWithHighestDegrees, vertexWithHighestCentralCloseness)
+intersect(vertexWithHighestDegrees, vertexWithHighestCentralCloseness)
 ```
-The
+# EXP.
+
+Some of the elements are
 ```{r closeness3}
-components(delete_vertices(facenet, vertexWithHighestCentralCloseness))$no
+components.closeness <- components(delete_vertices(facenet, vertexWithHighestCentralCloseness))
+components.closeness.no <- components.closeness$no
+components.closeness.max <- max(components.closeness$csize) / nVertex
+
+components.closeness.no
+components.closeness.max
 ```
 This time by removing vertex "107", "58", "428" and "563" with higher closeness have result in fewer components, 12.
 
@@ -204,10 +243,14 @@ vertexWithHighestBetweenness
 ```
 Now compare the 0.1% highest betweenness with the list in degrees.
 ```{r betweenness2}
-vertexWithHighestDegrees %in% vertexWithHighestBetweenness
+CompareList(vertexWithHighestDegrees, vertexWithHighestBetweenness)
+
 # no need for this results, we already know its value
-#vertexWithHighestCentralCloseness %in% vertexWithHighestBetweenness # false
-#components(delete_vertices(facenet, vertexWithHighestBetweenness))$no # same as degrees, 41
+#components.betweenness <- components(delete_vertices(facenet, vertexWithHighestBetweenness))
+#components.betweenness.no <- components.betweenness
+#components.betweenness.max <- max(components.betweenness$csize) / nVertex
+#components.betweenness.no # 41
+#components.betweenness.max # 0.9878563
 ```
 Booth lists are equal, then betweenness result is expected to be equal to degrees, 41 components.
 
@@ -234,7 +277,9 @@ sort(vertexWithHighestCentralCloseness) == sort(vertexWithHighestPageRank_arpack
 There is no difference between algorithms within page_rank in this case. We can do only 1 components run with any of page_rank lists.
 Page_rank also selected different vertex than the other 3 methods. Let's calculate its components.
 ```{r page_rank3}
-components(delete_vertices(facenet, vertexWithHighestPageRank))$no
+components.page_rank <- components(delete_vertices(facenet, vertexWithHighestPageRank))
+components.page_rank.no <- components.degrees$no
+components.page_rank.max <- max(components.degrees$csize / nVertex)
 ```
 Page_rank scored the maximum components, 52. This means that page_rank is able to select the most valuable nodes in the newtwork.
 
@@ -244,17 +289,12 @@ I was expecting degrees to be the best one but page_rank proved to be better.
 **2)** Now, consider the same graph as a directed one, and find the hubs and authorities scores. Compare with the page rank score.
 
 ```{r generate directed graph}
-
-graph_directed <- graph_from_data_frame(data, directed = T)
-
-
+graph_directed <- graph_from_data_frame(facenet, directed = T)
 ```
 
 ```{r HUBS and AUTHORITIES}
-
 hub_score <- hub_score(graph_directed, scale=T)$vector
 authority_score <- authority_score(graph_directed, scale =T )$vector
-
 
 par(mfrow=c(1,2))
 set.seed(123)
@@ -276,7 +316,6 @@ plot(graph_directed,
 
 
 #Observamos en los gráficos como las zonas donde hay Hubs y Authority coinciden.
-
 
 ```
 
