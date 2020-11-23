@@ -1,10 +1,12 @@
 ---
 title: "handout 2 - Xarxes Socials"
-author: "Guillermo Gavilla Hernández"
+author: "Guillermo Gavilla Hernández and Miquel Antoni Llambías Cabot"
 date: "19/11/2020"
 output: html_document
 ---
 
+* Name 1: Miquel Antoni Llambías Cabot
+* Name 2: Guillermo Gavilla Hernández
 
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.align="center", echo=TRUE, warning=FALSE, message=FALSE,autodep = TRUE,cache=FALSE)
@@ -21,13 +23,13 @@ We shall consider again the undirected Facebook friendship network considered in
 # Undirected Graph.
 
 ```{r read table }
-facenet <- read.table("data/facebook_sample_anon.txt")
-tail(facenet)
+data <- read.table("data/facebook_sample_anon.txt")
+tail(data)
 ```
 *Load data*
 
 ```{r generate a graph}
-facenet <- graph_from_data_frame(facenet, directed = F)
+facenet <- graph_from_data_frame(data, directed = F)
 # plot(graph, edge.color = "darkgoldenrod1", edge.arrow.size = 0.001, edge.arrow.width = 1,
 #     vertex.color = "cyan3", vertex.label= NA,
 #     vertex.size = 12, rescale = T, main = "Undirected Graph from Facebook dataset")
@@ -182,7 +184,7 @@ centr.clo$theoretical_max
 
 
 
-```{r closeness2}
+```{r CompareList}
 CompareList <- function (list1, list2) {
   res <- FALSE
   if(length(list1) == length(list2)) {
@@ -246,11 +248,11 @@ Now compare the 0.1% highest betweenness with the list in degrees.
 CompareList(vertexWithHighestDegrees, vertexWithHighestBetweenness)
 
 # no need for this results, we already know its value
-#components.betweenness <- components(delete_vertices(facenet, vertexWithHighestBetweenness))
-#components.betweenness.no <- components.betweenness
-#components.betweenness.max <- max(components.betweenness$csize) / nVertex
-#components.betweenness.no # 41
-#components.betweenness.max # 0.9878563
+  #components.betweenness <- components(delete_vertices(facenet, vertexWithHighestBetweenness))
+  #components.betweenness.no <- components.betweenness
+  #components.betweenness.max <- max(components.betweenness$csize) / nVertex
+  #components.betweenness.no # 41
+  #components.betweenness.max # 0.9878563
 ```
 Booth lists are equal, then betweenness result is expected to be equal to degrees, 41 components.
 
@@ -263,42 +265,55 @@ vertexWithHighestPageRank_prpack <- names(sort(page_rank(facenet, algo = "arpack
 
 # page rank with arpack algorithm
 vertexWithHighestPageRank_arpack <- names(sort(page_rank(facenet, algo = "prpack", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex])
+
+CompareList(vertexWithHighestPageRank_prpack, vertexWithHighestPageRank_arpack)
+vertexWithHighestPageRank <- intersect(vertexWithHighestPageRank_prpack, vertexWithHighestPageRank_arpack)
 vertexWithHighestPageRank
 ```
+Booth lists are equal.
+
 Now compare the 0.1% highest page_rank scores with the different algorithms, and then with degrees/betweenness and closeness.
 ```{r page_rank2}
-# Compare lists using different algorithms
-sort(vertexWithHighestPageRank_prpack) == sort(vertexWithHighestPageRank_arpack) # IF all TRUE booth lists are equal
-# Equal to degrees and betweenness?
-sort(vertexWithHighestDegrees) == sort(vertexWithHighestPageRank_arpack)
-# Equal to closeness?
-sort(vertexWithHighestCentralCloseness) == sort(vertexWithHighestPageRank_arpack)
+# compare with closeness and betweenness
+CompareList(vertexWithHighestDegrees, vertexWithHighestPageRank)
+intersect(vertexWithHighestDegrees, vertexWithHighestPageRank)
+
+# compare with closeness
+CompareList(vertexWithHighestCentralCloseness, vertexWithHighestPageRank)
+intersect(vertexWithHighestCentralCloseness, vertexWithHighestPageRank)
 ```
 There is no difference between algorithms within page_rank in this case. We can do only 1 components run with any of page_rank lists.
 Page_rank also selected different vertex than the other 3 methods. Let's calculate its components.
 ```{r page_rank3}
 components.page_rank <- components(delete_vertices(facenet, vertexWithHighestPageRank))
-components.page_rank.no <- components.degrees$no
-components.page_rank.max <- max(components.degrees$csize / nVertex)
+components.page_rank.no <- components.page_rank$no
+components.page_rank.max <- max(components.page_rank$csize) / nVertex
+
+components.page_rank.no
+components.page_rank.max
 ```
 Page_rank scored the maximum components, 52. This means that page_rank is able to select the most valuable nodes in the newtwork.
 
 To conclude, best was page_rank with 52 components, followed by degrees and betweenness with 41, and last closeness with 12.
 I was expecting degrees to be the best one but page_rank proved to be better.
 
-**2)** Now, consider the same graph as a directed one, and find the hubs and authorities scores. Compare with the page rank score.
+## **2)** Now, consider the same graph as a directed one, and find the hubs and authorities scores. Compare with the page rank score.
 
 ```{r generate directed graph}
-graph_directed <- graph_from_data_frame(facenet, directed = T)
+facenet_directed <- graph_from_data_frame(data, directed = TRUE)
 ```
 
-```{r HUBS and AUTHORITIES}
-hub_score <- hub_score(graph_directed, scale=T)$vector
-authority_score <- authority_score(graph_directed, scale =T )$vector
 
+#### HUBS and AUTHORITIES
+
+```{r HUBS and AUTHORITIES}
+hub_score <- hub_score(facenet_directed, scale=T)$vector
+authority_score <- authority_score(facenet_directed, scale =T )$vector
+```
+
+```{r}
 par(mfrow=c(1,2))
-set.seed(123)
-plot(graph_directed,
+plot(facenet_directed,
      vertex.size=hub_score*30,
      main = "Hubs",
      vertex.color = rainbow(52),
@@ -306,7 +321,7 @@ plot(graph_directed,
      layout = layout.kamada.kawai,
      vertex.label = NA)
 
-plot(graph_directed,
+plot(facenet_directed,
      vertex.size=authority_score*30,
      main = "Authority",
      vertex.color = rainbow(52),
@@ -319,14 +334,43 @@ plot(graph_directed,
 
 ```
 
+```{r HUBS 2}
+vertex.hub <- names(sort(hub_score, decreasing = TRUE)[1:Op1PercentVertex])
+vertex.hub
+```
+
+```{r HUBS 3}
+components.hub_score <- components(delete_vertices(facenet_directed, vertex.hub))
+components.hub_score.no <- components.hub_score$no
+components.hub_score.max <- max(components.hub_score$csize) / nVertex
+
+components.hub_score.no
+components.hub_score.max
+```
+
+```{r AUTHORITIES 2}
+vertex.auth <- names(sort(authority_score, decreasing = TRUE)[1:Op1PercentVertex])
+vertex.auth
+```
+
+```{r AUTHORITIES 3}
+components.authority_score <- components(delete_vertices(facenet_directed, vertex.auth))
+components.authority_score.no <- components.authority_score$no
+components.authority_score.max <- max(components.authority_score$csize) / nVertex
+
+components.authority_score.no
+components.authority_score.max
+```
+
+#### Page_rank directed score
+
 ```{r Pagerank score}
+page_rank <- page_rank(facenet_directed, algo = "arpack", directed = TRUE)$vector # booth algo give same result
+```
 
-page_rank <-page_rank(graph_directed)$vector
-
+```{r Pagerank score2}
 par(mfrow=c(1,2))
-set.seed(123)
-
-plot(graph_directed,
+plot(facenet_directed,
      vertex.size=page_rank*30,
      main = "Page rank",
      vertex.color = rainbow(52),
@@ -336,3 +380,46 @@ plot(graph_directed,
 
 ```
 
+```{r page_rank_directed1}
+vertex.page_rank <- names(sort(page_rank, decreasing = TRUE)[1:Op1PercentVertex])
+vertex.page_rank
+```
+
+```{r page_rank_directed2}
+components.page_rank <- components(delete_vertices(facenet_directed, vertex.page_rank))
+components.page_rank.no <- components.page_rank$no
+components.page_rank.max <- max(components.page_rank$csize) / nVertex
+
+components.page_rank.no
+components.page_rank.max
+```
+#### Compare Page_Rank with Hubs and Authorities
+
+- Doubt 1: can we join Hubs and Authorities scores into one list?
+
+```{r compare lists}
+CompareList(vertex.auth, vertex.hub)
+intersect(vertex.auth, vertex.hub)
+
+CompareList(vertex.auth, vertex.page_rank)
+intersect(vertex.auth, vertex.page_rank)
+
+CompareList(vertex.page_rank, vertex.hub)
+intersect(vertex.page_rank, vertex.hub)
+```
+None of the 0.1% high scores are same across the different 3 methods. Furthermore, none has a common element.
+
+Let's compare using previous metrics
+```{r compare cluster number}
+components.authority_score.no
+components.hub_score.no
+components.page_rank.no
+```
+Only hub_score make a difference.
+
+Let's compare the average fraction of the network represented by the largest component.
+```{r compare fractions}
+components.authority_score.max
+components.hub_score.max
+components.page_rank.max
+```
