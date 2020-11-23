@@ -112,13 +112,9 @@ mean(g1)
 ```
 
 ```{r}
-
-sum(g1)
-
-max(g1)/sum(g1)
-
-# 0.0086 es la proporcion que tiene el grafo con el número más grande de conexiones sobre el total de conexiones.
-
+nVertex <- vcount(facenet) - Op1PercentVertex
+components.degrees.no <- components.degrees$no
+components.degrees.max <- max(components.degrees$csize / nVertex)
 ```
 
 
@@ -145,11 +141,78 @@ centr.clo <- centr_clo(facenet)
 centr.clo$centralization
 centr.clo$theoretical_max
 ```
-```{r}
 
+
+Let's remove the 0.1% of the vertex with higher **degrees** and check how many components we have.
+```{r degrees}
+vertexWithHighestDegrees <- names(sort(degree(facenet), decreasing = TRUE)[1:Op1PercentVertex])
+vertexWithHighestDegrees
+components.degrees <- components(delete_vertices(facenet, vertexWithHighestDegrees))
+
+nVertex <- vcount(facenet) - Op1PercentVertex
+components.degrees.no <- components.degrees$no
+components.degrees.max <- max(components.degrees$csize / nVertex)
 ```
+We can see that by removing the 0.1% of nodes with the highest degrees, "107", "1684", "1912" and "3437", we can split the network in 41 components.
 
+Let's remove the 0.1% of the vertex with higher **closeness** and check how many components we have.
+```{r closeness}
+vertexWithHighestCentralCloseness <- names(sort(closeness(facenet), decreasing = TRUE)[1:Op1PercentVertex])
+vertexWithHighestCentralCloseness
+```
+Now compare the 0.1% highest closeness with the list in degrees.
+```{r closeness2}
+vertexWithHighestDegrees %in% vertexWithHighestCentralCloseness
+```
+The
+```{r closeness3}
+components(delete_vertices(facenet, vertexWithHighestCentralCloseness))$no
+```
+This time by removing vertex "107", "58", "428" and "563" with higher closeness have result in fewer components, 12.
 
+Let's remove the 0.1% of the vertex with higher **betweenness** and check how many components we have.
+```{r betweenness}
+vertexWithHighestBetweenness <- names(sort(betweenness(facenet), decreasing = TRUE)[1:Op1PercentVertex])
+vertexWithHighestBetweenness
+```
+Now compare the 0.1% highest betweenness with the list in degrees.
+```{r betweenness2}
+vertexWithHighestDegrees %in% vertexWithHighestBetweenness
+# no need for this results, we already know its value
+#vertexWithHighestCentralCloseness %in% vertexWithHighestBetweenness # false
+#components(delete_vertices(facenet, vertexWithHighestBetweenness))$no # same as degrees, 41
+```
+Booth lists are equal, then betweenness result is expected to be equal to degrees, 41 components.
+
+Let's remove the 0.1% of the vertex with higher **page_rank score** and check how many components we have.
+```{r page_rank}
+#names(sort(page_rank(facenet, algo = "power", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex]) makes klint to crash ...
+
+# page rank with prpack algorithm
+vertexWithHighestPageRank_prpack <- names(sort(page_rank(facenet, algo = "arpack", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex])
+
+# page rank with arpack algorithm
+vertexWithHighestPageRank_arpack <- names(sort(page_rank(facenet, algo = "prpack", directed = FALSE)$vector, decreasing = TRUE)[1:Op1PercentVertex])
+vertexWithHighestPageRank
+```
+Now compare the 0.1% highest page_rank scores with the different algorithms, and then with degrees/betweenness and closeness.
+```{r page_rank2}
+# Compare lists using different algorithms
+sort(vertexWithHighestPageRank_prpack) == sort(vertexWithHighestPageRank_arpack) # IF all TRUE booth lists are equal
+# Equal to degrees and betweenness?
+sort(vertexWithHighestDegrees) == sort(vertexWithHighestPageRank_arpack)
+# Equal to closeness?
+sort(vertexWithHighestCentralCloseness) == sort(vertexWithHighestPageRank_arpack)
+```
+There is no difference between algorithms within page_rank in this case. We can do only 1 components run with any of page_rank lists.
+Page_rank also selected different vertex than the other 3 methods. Let's calculate its components.
+```{r page_rank3}
+components(delete_vertices(facenet, vertexWithHighestPageRank))$no
+```
+Page_rank scored the maximum components, 52. This means that page_rank is able to select the most valuable nodes in the newtwork.
+
+To conclude, best was page_rank with 52 components, followed by degrees and betweenness with 41, and last closeness with 12.
+I was expecting degrees to be the best one but page_rank proved to be better.
 
 **2)** Now, consider the same graph as a directed one, and find the hubs and authorities scores. Compare with the page rank score.
 
