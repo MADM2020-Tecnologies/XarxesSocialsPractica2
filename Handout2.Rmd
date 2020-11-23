@@ -122,16 +122,32 @@ max(g1)/sum(g1)
 ```
 
 
-*b)* Now, compute the number of connected components and the fraction represented by the largest component of the networks obtained after removing the most central 0.1% of nodes, for the following centrality indices (of course, if the most central 0.1% of nodes for two indices are the same set of nodes, you need not waste your time considering twice the same network): *degree*; *closeness*; *betweenness*; *page.rank*. (**Hint**: It might be convenient to define first a function that removes a given set of nodes of this graph and computes the number of connected components and the fraction represented by the largest component of the resulting network; then you will only need to apply it to the required different sets of most central nodes.) Is it what you expected?
+*b)* Now, compute the number of connected components and the fraction represented by the largest component of the networks obtained after removing the most central 0.1% of nodes, for the following centrality indices (of course, if the most central 0.1% of nodes for two indices are the same set of nodes, you need not waste your time considering twice the same network): *degree*; *closeness*; *betweenness*; *page.rank*. (**Hint**: It might be convenient to define first a function that removes a given set of nodes of this graph and computes the number of connected components, and the fraction represented by the largest component of the resulting network; then you will only need to apply it to the required different sets of most central nodes.) Is it what you expected?
 
 
 ```{r}
 
-
-
-
 ```
 
+```{r}
+centr.degree <- centr_degree(facenet)
+centr.degree$centralization
+centr.degree$theoretical_max
+```
+
+```{r}
+centr.betw <- centr_betw(facenet)
+centr.betw$centralization
+centr.betw$theoretical_max
+```
+```{r}
+centr.clo <- centr_clo(facenet)
+centr.clo$centralization
+centr.clo$theoretical_max
+```
+```{r}
+
+```
 
 
 
