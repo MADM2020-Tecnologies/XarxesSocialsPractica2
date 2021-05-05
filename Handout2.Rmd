@@ -179,7 +179,7 @@ Let's remove the 0.1% of the vertex with higher **betweenness** and check how ma
 vertexWithHighestBetweenness <- names(sort(betweenness(facenet), decreasing = TRUE)[1:Op1PercentVertex])
 vertexWithHighestBetweenness
 ```
-Now compare the 0.1% highest betweenness with the list in degrees.
+Now compare the 0.1% high betweenness with the list in degrees.
 ```{r betweenness2}
 CompareList(vertexWithHighestDegrees, vertexWithHighestBetweenness)
 
